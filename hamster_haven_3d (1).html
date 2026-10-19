@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hamster Haven 🐹 // Ultimate 3D World & Photo Sanctuary</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        quicksand: ['Quicksand', 'sans-serif'],
+                    },
+                    colors: {
+                        hamster: {
+                            orange: '#ff9f43',
+                            warm: '#ee5253',
+                            beige: '#feca57',
+                            soft: '#ff9ff3',
+                            mint: '#54a0ff',
+                            bg: '#fff9f0'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            background-color: #fff8f0;
+            color: #2d3436;
+            font-family: 'Quicksand', sans-serif;
+            user-select: none;
+        }
+
+        /* Glassmorphism Styling */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 10px 30px -5px rgba(255, 159, 67, 0.15);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 240, 220, 0.9);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px -10px rgba(255, 159, 67, 0.3);
+            border-color: #ff9f43;
+        }
+
+        /* Floating Animation */
+        @keyframes gentle-float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+        }
+        .animate-float {
+            animation: gentle-float 4s ease-in-out infinite;
+        }
+
+        /* Pulse Glow */
+        .glow-orange {
+            box-shadow: 0 0 25px rgba(255, 159, 67, 0.5);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #fff3e0;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ffb86c;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff9f43;
+        }
+
+        #canvas-container {
+            touch-action: none;
+        }
+
+        /* 3D Polaroid Overlay Cards */
+        .polaroid-card {
+            background: white;
+            padding: 8px 8px 24px 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+            border-radius: 12px;
+            transform: rotate(-3deg);
+            transition: all 0.3s ease;
+        }
+        .polaroid-card:hover {
+            transform: rotate(0deg) scale(1.08);
+            box-shadow: 0 15px 35px rgba(255, 159, 67, 0.3);
+            z-index: 20;
+        }
+    </style>
+</head>
+<body class="bg-[#fff9f0] text-slate-800 antialiased selection:bg-amber-200 selection:text-amber-900">
+
+    <!-- 3D Canvas Background -->
+    <div id="canvas-container" class="fixed inset-0 z-0 cursor-grab active:cursor-grabbing"></div>
+
+    <!-- MAIN UI OVERLAY -->
+    <div class="relative z-10 min-h-screen flex flex-col justify-between pointer-events-none">
+
+        <!-- HEADER NAVIGATION -->
+        <header class="w-full p-4 lg:p-6 flex justify-between items-center pointer-events-auto max-w-7xl mx-auto">
+            <div class="flex items-center space-x-3 cursor-pointer group" onclick="setCameraAngle('orbit')">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-orange-400 to-rose-400 p-1 shadow-lg shadow-orange-500/20 transition-transform group-hover:scale-110">
+                    <div class="w-full h-full bg-white rounded-xl flex items-center justify-center text-2xl">
+                        🐹
+                    </div>
+                </div>
+                <div>
+                    <h1 class="font-fredoka text-2xl lg:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-500 via-rose-500 to-amber-500">
+                        Hamster Haven
+                    </h1>
+                    <p class="text-xs font-semibold text-amber-700/70 tracking-wide uppercase">3D Interactive World & Gallery</p>
+                </div>
+            </div>
+
+            <!-- Pet Counter Badge & Sound Toggle -->
+            <div class="flex items-center space-x-3">
+                <!-- Pet Counter -->
+                <div class="hidden sm:flex items-center space-x-2 px-4 py-2 rounded-2xl glass-panel border-amber-200 text-amber-900 font-fredoka text-xs font-bold shadow-sm">
+                    <span class="text-base">❤️</span>
+                    <span>Pets Today: <span id="pet-count-display" class="text-orange-600 text-sm">0</span></span>
+                </div>
+
+                <button id="sound-btn" onclick="toggleAudio()" class="px-4 py-2.5 rounded-2xl glass-panel text-slate-700 hover:text-orange-600 transition-all font-fredoka text-sm font-medium flex items-center space-x-2 border-orange-200/50 hover:border-orange-400 shadow-sm">
+                    <i id="sound-icon" data-lucide="volume-2" class="w-4 h-4 text-orange-500"></i>
+                    <span id="sound-text" class="hidden sm:inline">Sound: ON</span>
+                </button>
+
+                <a href="#photo-gallery" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-white font-fredoka font-bold text-sm tracking-wide shadow-md shadow-orange-500/20 hover:opacity-90 hover:scale-105 transition-all flex items-center space-x-1.5">
+                    <i data-lucide="image" class="w-4 h-4"></i>
+                    <span>Photo Wall 📸</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- HERO SECTION OVERLAY -->
+        <main class="container mx-auto px-6 pt-2 pb-8 flex-1 flex flex-col justify-between pointer-events-none">
+            
+            <div class="max-w-xl pointer-events-auto my-auto py-4">
+                <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full glass-panel border-orange-300 text-orange-600 text-xs font-bold uppercase tracking-wider mb-3 animate-float">
+                    <span class="text-base">✨</span>
+                    <span>Meet Nibbles the 3D Hamster</span>
+                </div>
+
+                <h2 class="font-fredoka text-4xl sm:text-6xl font-extrabold text-slate-900 tracking-tight leading-none mb-3">
+                    Paws, Whiskers <br>
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-orange-500 via-amber-500 to-pink-500">
+                        & Pure Joy!
+                    </span>
+                </h2>
+
+                <p class="text-slate-600 text-sm sm:text-base font-medium leading-relaxed mb-5 max-w-md">
+                    Interact, play, feed, and explore with our fully dynamic 3D cute hamster companion. Pet Nibbles, watch cheeks puff, spin the wheel, or jump to our high-res picture gallery!
+                </p>
+
+                <!-- Action Button Controls -->
+                <div class="flex flex-wrap gap-2.5">
+                    <button onclick="triggerPetAction()" class="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-orange-400 to-amber-500 text-white font-fredoka font-bold text-xs sm:text-sm tracking-wider uppercase shadow-lg shadow-orange-400/30 hover:scale-105 active:scale-95 transition-all flex items-center space-x-1.5">
+                        <span>❤️ Pet Nibbles</span>
+                    </button>
+
+                    <button onclick="triggerAction('bounce')" class="px-4 py-2.5 rounded-2xl glass-panel text-slate-800 font-fredoka font-bold text-xs sm:text-sm tracking-wider uppercase border-orange-200 hover:bg-orange-100/50 hover:scale-105 active:scale-95 transition-all flex items-center space-x-1.5">
+                        <span>🎾 Dance Bounce</span>
+                    </button>
+
+                    <button onclick="triggerAction('run')" class="px-4 py-2.5 rounded-2xl glass-panel text-slate-800 font-fredoka font-bold text-xs sm:text-sm tracking-wider uppercase border-orange-200 hover:bg-orange-100/50 hover:scale-105 active:scale-95 transition-all flex items-center space-x-1.5">
+                        <span>🎡 Spin Wheel</span>
+                    </button>
+
+                    <button onclick="triggerAction('eat')" class="px-4 py-2.5 rounded-2xl glass-panel text-slate-800 font-fredoka font-bold text-xs sm:text-sm tracking-wider uppercase border-amber-200 hover:bg-amber-100/50 hover:scale-105 active:scale-95 transition-all flex items-center space-x-1.5">
+                        <span>🌻 Munch Seed</span>
+                    </button>
+
+                    <button onclick="triggerAction('sniff')" class="px-4 py-2.5 rounded-2xl glass-panel text-slate-800 font-fredoka font-bold text-xs sm:text-sm tracking-wider uppercase border-teal-200 hover:bg-teal-100/50 hover:scale-105 active:scale-95 transition-all flex items-center space-x-1.5">
+                        <span>🔍 Sniff Around</span>
+                    </button>
+
+                    <button onclick="triggerAction('sleep')" class="px-4 py-2.5 rounded-2xl glass-panel text-slate-800 font-fredoka font-bold text-xs sm:text-sm tracking-wider uppercase border-purple-200 hover:bg-purple-100/50 hover:scale-105 active:scale-95 transition-all flex items-center space-x-1.5">
+                        <span>💤 Sleep Nap</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- CONTROLS, COAT & ENVIRONMENT SELECTOR BAR -->
+            <div class="w-full max-w-5xl mx-auto pointer-events-auto glass-panel p-4 rounded-3xl border-orange-200/60 shadow-xl my-2">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    
+                    <!-- Color Swatches -->
+                    <div class="flex items-center space-x-3">
+                        <span class="font-fredoka text-xs uppercase font-bold text-slate-500 tracking-wider">Fur Coat:</span>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="changeFurColor(0xff9f43)" title="Golden Honey" class="w-7 h-7 rounded-xl bg-[#ff9f43] border-2 border-white shadow-md hover:scale-110 transition-transform active:ring-2 ring-orange-400"></button>
+                            <button onclick="changeFurColor(0x353b48)" title="Oreo Panda" class="w-7 h-7 rounded-xl bg-[#353b48] border-2 border-white shadow-md hover:scale-110 transition-transform active:ring-2 ring-slate-600"></button>
+                            <button onclick="changeFurColor(0xf5f6fa)" title="Winter White" class="w-7 h-7 rounded-xl bg-[#f5f6fa] border-2 border-amber-200 shadow-md hover:scale-110 transition-transform active:ring-2 ring-amber-300"></button>
+                            <button onclick="changeFurColor(0xee5253)" title="Cinnamon" class="w-7 h-7 rounded-xl bg-[#ee5253] border-2 border-white shadow-md hover:scale-110 transition-transform active:ring-2 ring-red-400"></button>
+                            <button onclick="changeFurColor(0xfeca57)" title="Creamy Butter" class="w-7 h-7 rounded-xl bg-[#feca57] border-2 border-white shadow-md hover:scale-110 transition-transform active:ring-2 ring-yellow-400"></button>
+                        </div>
+                    </div>
+
+                    <!-- Environment Scenery Switcher -->
+                    <div class="flex items-center space-x-2">
+                        <span class="font-fredoka text-xs uppercase font-bold text-slate-500 tracking-wider">Scenery:</span>
+                        <button onclick="setEnvironment('cozy')" class="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-fredoka text-xs font-semibold transition-colors">
+                            🏠 Cozy Bedding
+                        </button>
+                        <button onclick="setEnvironment('cyber')" class="px-3 py-1.5 rounded-xl bg-purple-100 hover:bg-purple-200 text-purple-900 font-fredoka text-xs font-semibold transition-colors">
+                            ⚡ Cyber Wheel
+                        </button>
+                        <button onclick="setEnvironment('meadow')" class="px-3 py-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-fredoka text-xs font-semibold transition-colors">
+                            🌻 Sun Meadow
+                        </button>
+                    </div>
+
+                    <!-- Camera Angles -->
+                    <div class="flex items-center space-x-2">
+                        <span class="font-fredoka text-xs uppercase font-bold text-slate-500 tracking-wider">Camera:</span>
+                        <button onclick="setCameraAngle('closeup')" class="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-fredoka text-xs font-semibold transition-colors">
+                            Face Zoom
+                        </button>
+                        <button onclick="setCameraAngle('wheel')" class="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-fredoka text-xs font-semibold transition-colors">
+                            Wheel View
+                        </button>
+                        <button onclick="setCameraAngle('orbit')" class="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-fredoka text-xs font-semibold transition-colors">
+                            Free Orbit
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- CONTENT SECTIONS (SCROLLABLE BELOW HERO) -->
+    <div class="relative z-10 pointer-events-auto bg-gradient-to-b from-transparent via-[#fff9f0] to-amber-50/80 pt-16 pb-24 border-t border-orange-100">
+        
+        <!-- MINI-GAME SECTION -->
+        <section id="mini-game" class="max-w-5xl mx-auto px-6 mb-24">
+            <div class="glass-panel p-8 rounded-3xl border-orange-200 shadow-2xl bg-white/90 text-center relative overflow-hidden">
+                <div class="absolute -top-12 -right-12 w-40 h-40 bg-amber-300/30 rounded-full blur-2xl"></div>
+                <div class="absolute -bottom-12 -left-12 w-40 h-40 bg-orange-300/30 rounded-full blur-2xl"></div>
+
+                <span class="inline-block px-4 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-widest mb-3">
+                    Mini-Game Challenge
+                </span>
+                <h3 class="font-fredoka text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+                    Stuff Nibbles' Cheeks! 🌻
+                </h3>
+                <p class="text-slate-600 max-w-lg mx-auto text-sm sm:text-base mb-6 font-medium">
+                    Click the sunflower button to feed treats into Nibbles' cheek pouches! Watch the 3D model cheeks puff up in real-time!
+                </p>
+
+                <!-- Cheek Storage Progress Bar -->
+                <div class="max-w-md mx-auto mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-fredoka text-xs font-bold text-slate-600 uppercase">Cheek Pouch Expansion:</span>
+                        <span id="treat-counter" class="font-fredoka text-sm font-bold text-orange-600">0 / 10 Seeds</span>
+                    </div>
+                    <div class="w-full h-5 bg-amber-100 rounded-full p-1 border border-amber-200 shadow-inner">
+                        <div id="treat-bar" class="h-full bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 rounded-full transition-all duration-300 w-0"></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-4">
+                    <button onclick="feedTreatToGame()" class="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-fredoka font-bold text-base tracking-wide shadow-xl shadow-orange-500/30 transform hover:scale-105 active:scale-95 transition-all inline-flex items-center space-x-3">
+                        <span class="text-2xl">🌻</span>
+                        <span>Toss Sunflower Seed!</span>
+                    </button>
+
+                    <button onclick="emptyCheeks()" class="px-6 py-4 rounded-2xl glass-panel text-slate-700 hover:bg-rose-50 font-fredoka font-bold text-base tracking-wide border-rose-200 hover:scale-105 active:scale-95 transition-all inline-flex items-center space-x-2">
+                        <span>🧹 Unstuff Cheeks</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- HIGH-QUALITY HAMSTER PHOTO GALLERY / WALL OF CUTE -->
+        <section id="photo-gallery" class="max-w-7xl mx-auto px-6 mb-24">
+            <div class="text-center mb-10">
+                <span class="inline-block px-4 py-1 rounded-full bg-orange-100 text-orange-800 text-xs font-bold uppercase tracking-widest mb-3">
+                    Curated Photo Sanctuary
+                </span>
+                <h3 class="font-fredoka text-3xl sm:text-5xl font-bold text-slate-900 mb-3">
+                    Wall of Cuteness 📸
+                </h3>
+                <p class="text-slate-600 font-medium text-base max-w-md mx-auto">
+                    Explore high-definition photos of cute hamsters in action! Click any picture to open full-resolution Lightbox viewer.
+                </p>
+
+                <!-- Filter Tabs -->
+                <div class="flex flex-wrap justify-center gap-2 mt-6">
+                    <button onclick="filterGallery('all')" class="gallery-tab px-4 py-2 rounded-xl bg-orange-500 text-white font-fredoka text-xs font-bold uppercase tracking-wider transition-all shadow-md">All Photos</button>
+                    <button onclick="filterGallery('syrian')" class="gallery-tab px-4 py-2 rounded-xl glass-panel text-slate-700 font-fredoka text-xs font-bold uppercase tracking-wider transition-all">Syrian</button>
+                    <button onclick="filterGallery('dwarf')" class="gallery-tab px-4 py-2 rounded-xl glass-panel text-slate-700 font-fredoka text-xs font-bold uppercase tracking-wider transition-all">Dwarfs</button>
+                    <button onclick="filterGallery('eating')" class="gallery-tab px-4 py-2 rounded-xl glass-panel text-slate-700 font-fredoka text-xs font-bold uppercase tracking-wider transition-all">Eating Treats</button>
+                    <button onclick="filterGallery('sleeping')" class="gallery-tab px-4 py-2 rounded-xl glass-panel text-slate-700 font-fredoka text-xs font-bold uppercase tracking-wider transition-all">Sleepyheads</button>
+                </div>
+            </div>
+
+            <!-- Grid of Photos -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="gallery-grid">
+                
+                <!-- Photo Card 1 -->
+                <div class="gallery-item syrian eating glass-card rounded-3xl p-3 cursor-pointer group" onclick="openLightbox('https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=1200&q=80', 'Golden Syrian Hamster Nibbling', 'Golden Syrian')">
+                    <div class="relative overflow-hidden rounded-2xl h-56 mb-3">
+                        <img src="https://images.unsplash.com/photo-1425082661705-1834bfd09dca?auto=format&fit=crop&w=600&q=80" alt="Syrian Hamster" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md">Syrian</span>
+                    </div>
+                    <div class="px-2 pb-1">
+                        <h4 class="font-fredoka text-base font-bold text-slate-900 group-hover:text-orange-500 transition-colors">Barnaby the Golden</h4>
+                        <p class="text-xs text-slate-500 font-medium">Crunching on a fresh pumpkin seed</p>
+                    </div>
+                </div>
+
+                <!-- Photo Card 2 -->
+                <div class="gallery-item dwarf sleeping glass-card rounded-3xl p-3 cursor-pointer group" onclick="openLightbox('https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=1200&q=80', 'Sleepy Roborovski Dwarf', 'Roborovski Dwarf')">
+                    <div class="relative overflow-hidden rounded-2xl h-56 mb-3">
+                        <img src="https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=600&q=80" alt="Dwarf Hamster" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md">Dwarf</span>
+                    </div>
+                    <div class="px-2 pb-1">
+                        <h4 class="font-fredoka text-base font-bold text-slate-900 group-hover:text-orange-500 transition-colors">Peanut the Robo</h4>
+                        <p class="text-xs text-slate-500 font-medium">Curled up in fluffy paper bedding</p>
+                    </div>
+                </div>
+
+                <!-- Photo Card 3 -->
+                <div class="gallery-item syrian glass-card rounded-3xl p-3 cursor-pointer group" onclick="openLightbox('https://images.unsplash.com/photo-1551085254-e96b210db58a?auto=format&fit=crop&w=1200&q=80', 'Curious Cinnamon Hamster', 'Syrian')">
+                    <div class="relative overflow-hidden rounded-2xl h-56 mb-3">
+                        <img src="https://images.unsplash.com/photo-1551085254-e96b210db58a?auto=format&fit=crop&w=600&q=80" alt="Cinnamon Hamster" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md">Syrian</span>
+                    </div>
+                    <div class="px-2 pb-1">
+                        <h4 class="font-fredoka text-base font-bold text-slate-900 group-hover:text-orange-500 transition-colors">Mochi the Cinnamon</h4>
+                        <p class="text-xs text-slate-500 font-medium">Exploring the wooden playhouse</p>
+                    </div>
+                </div>
+
+                <!-- Photo Card 4 -->
+                <div class="gallery-item dwarf eating glass-card rounded-3xl p-3 cursor-pointer group" onclick="openLightbox('https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?auto=format&fit=crop&w=1200&q=80', 'Winter White Dwarf Stuffed Cheeks', 'Winter White')">
+                    <div class="relative overflow-hidden rounded-2xl h-56 mb-3">
+                        <img src="https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?auto=format&fit=crop&w=600&q=80" alt="Winter White" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md">Winter White</span>
+                    </div>
+                    <div class="px-2 pb-1">
+                        <h4 class="font-fredoka text-base font-bold text-slate-900 group-hover:text-orange-500 transition-colors">Snowball</h4>
+                        <p class="text-xs text-slate-500 font-medium">Pouching sunflower seeds for winter</p>
+                    </div>
+                </div>
+
+                <!-- Photo Card 5 -->
+                <div class="gallery-item eating glass-card rounded-3xl p-3 cursor-pointer group" onclick="openLightbox('https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=1200&q=80', 'Fluffy Bunny & Hamster Friends', 'Misc Cute')">
+                    <div class="relative overflow-hidden rounded-2xl h-56 mb-3">
+                        <img src="https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=600&q=80" alt="Cute Furry Pet" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md">Treats</span>
+                    </div>
+                    <div class="px-2 pb-1">
+                        <h4 class="font-fredoka text-base font-bold text-slate-900 group-hover:text-orange-500 transition-colors">Biscuit & Friends</h4>
+                        <p class="text-xs text-slate-500 font-medium">Snacking on fresh parsley sprigs</p>
+                    </div>
+                </div>
+
+                <!-- Photo Card 6 -->
+                <div class="gallery-item sleeping glass-card rounded-3xl p-3 cursor-pointer group" onclick="openLightbox('https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1200&q=80', 'Cozy Sleepy Hamster Nest', 'Sleepyheads')">
+                    <div class="relative overflow-hidden rounded-2xl h-56 mb-3">
+                        <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80" alt="Sleepy Pet" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md">Sleepy</span>
+                    </div>
+                    <div class="px-2 pb-1">
+                        <h4 class="font-fredoka text-base font-bold text-slate-900 group-hover:text-orange-500 transition-colors">Pip the Snuggler</h4>
+                        <p class="text-xs text-slate-500 font-medium">Fast asleep inside a mossy hideout</p>
+                    </div>
+                </div>
+
+                <!-- Photo Card 7 -->
+                <div class="gallery-item dwarf glass-card rounded-3xl p-3 cursor-pointer group" onclick="openLightbox('https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=1200&q=80', 'Chinese Hamster Tail Balance', 'Chinese Hamster')">
+                    <div class="relative overflow-hidden rounded-2xl h-56 mb-3">
+                        <img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=600&q=80" alt="Chinese Hamster" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md">Dwarf</span>
+                    </div>
+                    <div class="px-2 pb-1">
+                        <h4 class="font-fredoka text-base font-bold text-slate-900 group-hover:text-orange-500 transition-colors">Tiki the Acrobat</h4>
+                        <p class="text-xs text-slate-500 font-medium">Climbing up wooden branches</p>
+                    </div>
+                </div>
+
+                <!-- Photo Card 8 -->
+                <div class="gallery-item syrian eating glass-card rounded-3xl p-3 cursor-pointer group" onclick="openLightbox('https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=80', 'Panda Tuxedo Hamster Pose', 'Syrian Panda')">
+                    <div class="relative overflow-hidden rounded-2xl h-56 mb-3">
+                        <img src="https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=600&q=80" alt="Panda Hamster" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                        <span class="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md">Syrian</span>
+                    </div>
+                    <div class="px-2 pb-1">
+                        <h4 class="font-fredoka text-base font-bold text-slate-900 group-hover:text-orange-500 transition-colors">Oreo Panda</h4>
+                        <p class="text-xs text-slate-500 font-medium">Standing up tall on hind legs</p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- BREED SPOTLIGHT & ACCORDION FUN FACTS -->
+        <section class="max-w-5xl mx-auto px-6 mb-24">
+            <div class="glass-panel p-8 sm:p-10 rounded-3xl border-orange-200">
+                <div class="flex items-center space-x-3 mb-8">
+                    <span class="text-3xl">📚</span>
+                    <div>
+                        <h3 class="font-fredoka text-2xl sm:text-3xl font-bold text-slate-900">
+                            Hamster Secrets & Care Guide
+                        </h3>
+                        <p class="text-slate-500 text-xs sm:text-sm font-semibold">Interactive facts every hamster lover should know!</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <!-- Fact Accordion 1 -->
+                    <div class="glass-card rounded-2xl p-5 cursor-pointer" onclick="toggleAccordion('fact-1')">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-fredoka font-bold text-slate-800 text-base sm:text-lg flex items-center space-x-2">
+                                <span>🌻 How Big Do Cheek Pouches Actually Stretch?</span>
+                            </h4>
+                            <i data-lucide="chevron-down" id="fact-1-icon" class="w-5 h-5 text-orange-500 transition-transform"></i>
+                        </div>
+                        <div id="fact-1" class="hidden mt-3 pt-3 border-t border-orange-100 text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">
+                            Hamster cheek pouches are completely dry sacs without salivary glands! They extend all the way back to their hips, allowing them to carry up to half their own body weight in seeds and bedding back to their burrows!
+                        </div>
+                    </div>
+
+                    <!-- Fact Accordion 2 -->
+                    <div class="glass-card rounded-2xl p-5 cursor-pointer" onclick="toggleAccordion('fact-2')">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-fredoka font-bold text-slate-800 text-base sm:text-lg flex items-center space-x-2">
+                                <span>🏃 How Far Do Hamsters Run Each Night?</span>
+                            </h4>
+                            <i data-lucide="chevron-down" id="fact-2-icon" class="w-5 h-5 text-orange-500 transition-transform"></i>
+                        </div>
+                        <div id="fact-2" class="hidden mt-3 pt-3 border-t border-orange-100 text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">
+                            In the wild or inside a safe wheel, a single dwarf or Syrian hamster can run up to 5 to 8 miles (8–13 km) in a single night! That is equivalent to a human running several full marathons back to back!
+                        </div>
+                    </div>
+
+                    <!-- Fact Accordion 3 -->
+                    <div class="glass-card rounded-2xl p-5 cursor-pointer" onclick="toggleAccordion('fact-3')">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-fredoka font-bold text-slate-800 text-base sm:text-lg flex items-center space-x-2">
+                                <span>🛁 Why Should You Never Bathe a Hamster in Water?</span>
+                            </h4>
+                            <i data-lucide="chevron-down" id="fact-3-icon" class="w-5 h-5 text-orange-500 transition-transform"></i>
+                        </div>
+                        <div id="fact-3" class="hidden mt-3 pt-3 border-t border-orange-100 text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">
+                            Water washes away necessary natural protective oils from their fur coat and causes rapid dangerous hypothermia. Hamsters clean themselves naturally using specialized sand baths filled with dust-free reptile-safe sand!
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="text-center text-slate-500 text-xs font-semibold py-8 border-t border-orange-100">
+            <p>Made with ❤️ for Hamster Lovers Worldwide | Powered by Three.js & WebGL</p>
+        </footer>
+
+    </div>
+
+    <!-- LIGHTBOX MODAL FOR PHOTO GALLERY -->
+    <div id="lightbox-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4 pointer-events-auto" onclick="closeLightbox()">
+        <div class="relative max-w-4xl w-full bg-white rounded-3xl p-4 sm:p-6 shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
+            <button onclick="closeLightbox()" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            
+            <img id="lightbox-img" src="" alt="Hamster HD" class="w-full h-auto max-h-[70vh] object-contain rounded-2xl mb-4">
+            
+            <div class="flex justify-between items-center px-2">
+                <div>
+                    <h4 id="lightbox-title" class="font-fredoka text-xl font-bold text-slate-900">Title</h4>
+                    <span id="lightbox-badge" class="inline-block px-3 py-1 rounded-full bg-orange-100 text-orange-700 text-xs font-bold mt-1">Breed</span>
+                </div>
+                <button onclick="downloadPhotoNotice()" class="px-4 py-2 rounded-xl bg-orange-500 text-white font-fredoka text-xs font-bold flex items-center space-x-1 hover:bg-orange-600 transition-colors">
+                    <i data-lucide="heart" class="w-4 h-4"></i>
+                    <span>Favorite Photo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- THREE.JS 3D SCENE & ENGINE SCRIPT -->
+    <script>
+        // Global Scene Variables
+        let scene, camera, renderer;
+        let hamsterGroup, bodyMesh, headGroup, leftCheek, rightCheek, earLeft, earRight, tailMesh;
+        let eyeL, eyeR, whiskerGroup;
+        let wheelGroup, wheelRing, floorPlatform, roomLight, accentLight;
+        let floatingTreats = [];
+        let particles = [];
+        let zzzParticles = [];
+
+        // Dynamic State
+        let isMuted = false;
+        let currentFurColor = 0xff9f43;
+        let treatCount = 0;
+        let petCount = 0;
+        let activeAction = 'idle'; // 'idle', 'bounce', 'run', 'eat', 'sniff', 'sleep'
+        let actionTimer = 0;
+        let wheelSpeed = 0;
+        let cheekScaleTarget = 1.0;
+        let cheekScaleCurrent = 1.0;
+
+        // Mouse Tracking
+        const mouse = { x: 0, y: 0 };
+
+        // Sound Synthesis via Web Audio API
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+        }
+
+        function playSound(type) {
+            if (isMuted) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'squeak') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(850, now);
+                osc.frequency.exponentialRampToValueAtTime(1500, now + 0.12);
+                gain.gain.setValueAtTime(0.18, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                osc.start(now);
+                osc.stop(now + 0.12);
+            } else if (type === 'crunch') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.setValueAtTime(160, now + 0.05);
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'pop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(450, now);
+                osc.frequency.exponentialRampToValueAtTime(900, now + 0.08);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            }
+        }
+
+        function toggleAudio() {
+            isMuted = !isMuted;
+            document.getElementById('sound-icon').setAttribute('data-lucide', isMuted ? 'volume-x' : 'volume-2');
+            document.getElementById('sound-text').innerText = isMuted ? 'Sound: OFF' : 'Sound: ON';
+            lucide.createIcons();
+        }
+
+        // --- THREE.JS INITIALIZATION ---
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene & Fog
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0xfff9f0, 0.035);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.8, 6.5);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xfff5ea, 0.9);
+            scene.add(ambientLight);
+
+            roomLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+            roomLight.position.set(5, 10, 7);
+            roomLight.castShadow = true;
+            roomLight.shadow.mapSize.width = 1024;
+            roomLight.shadow.mapSize.height = 1024;
+            scene.add(roomLight);
+
+            accentLight = new THREE.DirectionalLight(0xffb86c, 0.4);
+            accentLight.position.set(-5, 3, -5);
+            scene.add(accentLight);
+
+            // Build Scene Components
+            createPlatform();
+            createWheel();
+            createHamsterCharacter();
+            createFloatingTreats();
+
+            // Window & Mouse Listeners
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('mousemove', onMouseMove);
+
+            // Initialize Lucide Icons
+            lucide.createIcons();
+
+            // Render Loop
+            animate();
+        }
+
+        // --- PROCEDURAL 3D HAMSTER CHARACTER MODEL ---
+        function createHamsterCharacter() {
+            hamsterGroup = new THREE.Group();
+            hamsterGroup.position.set(0, 0.3, 0);
+
+            // Fur Material
+            const furMaterial = new THREE.MeshStandardMaterial({
+                color: currentFurColor,
+                roughness: 0.85,
+                metalness: 0.05
+            });
+
+            // Cream Belly Material
+            const bellyMaterial = new THREE.MeshStandardMaterial({
+                color: 0xfff3e0,
+                roughness: 0.9
+            });
+
+            // 1. Main Squishy Spherical Body
+            const bodyGeo = new THREE.SphereGeometry(0.85, 32, 32);
+            bodyGeo.scale(1, 0.9, 1.1);
+            bodyMesh = new THREE.Mesh(bodyGeo, furMaterial);
+            bodyMesh.castShadow = true;
+            hamsterGroup.add(bodyMesh);
+
+            // Belly Patch
+            const bellyGeo = new THREE.SphereGeometry(0.68, 32, 32);
+            bellyGeo.scale(0.8, 0.8, 0.5);
+            const bellyMesh = new THREE.Mesh(bellyGeo, bellyMaterial);
+            bellyMesh.position.set(0, -0.1, 0.58);
+            hamsterGroup.add(bellyMesh);
+
+            // Head Group
+            headGroup = new THREE.Group();
+            headGroup.position.set(0, 0.42, 0.62);
+
+            const headGeo = new THREE.SphereGeometry(0.56, 32, 32);
+            const headMesh = new THREE.Mesh(headGeo, furMaterial);
+            headMesh.castShadow = true;
+            headGroup.add(headMesh);
+
+            // Cheeks (Dynamic Cheek Pouch Inflation)
+            const cheekMat = new THREE.MeshStandardMaterial({ color: 0xffa0a0, roughness: 0.7 });
+            const cheekGeo = new THREE.SphereGeometry(0.24, 16, 16);
+
+            leftCheek = new THREE.Mesh(cheekGeo, cheekMat);
+            leftCheek.position.set(-0.34, -0.1, 0.26);
+            headGroup.add(leftCheek);
+
+            rightCheek = new THREE.Mesh(cheekGeo, cheekMat);
+            rightCheek.position.set(0.34, -0.1, 0.26);
+            headGroup.add(rightCheek);
+
+            // Shiny Button Eyes
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.1, metalness: 0.9 });
+            const eyeGeo = new THREE.SphereGeometry(0.085, 16, 16);
+
+            eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+            eyeL.position.set(-0.26, 0.13, 0.44);
+            headGroup.add(eyeL);
+
+            eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+            eyeR.position.set(0.26, 0.13, 0.44);
+            headGroup.add(eyeR);
+
+            // Eye Highlights
+            const highlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const highlightGeo = new THREE.SphereGeometry(0.025, 8, 8);
+            
+            const hlL = new THREE.Mesh(highlightGeo, highlightMat);
+            hlL.position.set(-0.24, 0.16, 0.5);
+            headGroup.add(hlL);
+
+            const hlR = new THREE.Mesh(highlightGeo, highlightMat);
+            hlR.position.set(0.28, 0.16, 0.5);
+            headGroup.add(hlR);
+
+            // Cute Pink Nose
+            const noseMat = new THREE.MeshStandardMaterial({ color: 0xff7b9c, roughness: 0.5 });
+            const noseGeo = new THREE.SphereGeometry(0.065, 16, 16);
+            const nose = new THREE.Mesh(noseGeo, noseMat);
+            nose.position.set(0, 0.02, 0.56);
+            headGroup.add(nose);
+
+            // Whiskers Group
+            whiskerGroup = new THREE.Group();
+            const whiskerMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+            for (let side = -1; side <= 1; side += 2) {
+                for (let i = -1; i <= 1; i++) {
+                    const wGeo = new THREE.CylinderGeometry(0.005, 0.002, 0.4);
+                    wGeo.rotateZ(Math.PI / 2);
+                    const wMesh = new THREE.Mesh(wGeo, whiskerMat);
+                    wMesh.position.set(side * 0.35, i * 0.05 - 0.02, 0.48);
+                    wMesh.rotation.y = side * 0.2;
+                    wMesh.rotation.z = i * 0.15;
+                    whiskerGroup.add(wMesh);
+                }
+            }
+            headGroup.add(whiskerGroup);
+
+            // Twitching Ears
+            const earMat = new THREE.MeshStandardMaterial({ color: 0xffa8a8, roughness: 0.6 });
+            const earGeo = new THREE.SphereGeometry(0.17, 16, 16);
+            earGeo.scale(0.8, 1.2, 0.3);
+
+            earLeft = new THREE.Group();
+            const earLMesh = new THREE.Mesh(earGeo, furMaterial);
+            const earLInner = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), earMat);
+            earLInner.position.z = 0.05;
+            earLeft.add(earLMesh, earLInner);
+            earLeft.position.set(-0.38, 0.44, 0.1);
+            earLeft.rotation.z = -0.3;
+            headGroup.add(earLeft);
+
+            earRight = new THREE.Group();
+            const earRMesh = new THREE.Mesh(earGeo, furMaterial);
+            const earRInner = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), earMat);
+            earRInner.position.z = 0.05;
+            earRight.add(earRMesh, earRInner);
+            earRight.position.set(0.38, 0.44, 0.1);
+            earRight.rotation.z = 0.3;
+            headGroup.add(earRight);
+
+            hamsterGroup.add(headGroup);
+
+            // Paws & Feet
+            const pawMat = new THREE.MeshStandardMaterial({ color: 0xffb8b8, roughness: 0.6 });
+            const pawGeo = new THREE.SphereGeometry(0.12, 16, 16);
+            pawGeo.scale(0.8, 0.6, 1.2);
+
+            const pawL = new THREE.Mesh(pawGeo, pawMat);
+            pawL.position.set(-0.36, -0.68, 0.52);
+            hamsterGroup.add(pawL);
+
+            const pawR = new THREE.Mesh(pawGeo, pawMat);
+            pawR.position.set(0.36, -0.68, 0.52);
+            hamsterGroup.add(pawR);
+
+            // Tiny Wagging Tail
+            const tailGeo = new THREE.SphereGeometry(0.09, 16, 16);
+            tailMesh = new THREE.Mesh(tailGeo, pawMat);
+            tailMesh.position.set(0, -0.52, -0.88);
+            hamsterGroup.add(tailMesh);
+
+            scene.add(hamsterGroup);
+        }
+
+        // --- 3D HAMSTER WHEEL & PLATFORM ---
+        function createWheel() {
+            wheelGroup = new THREE.Group();
+            wheelGroup.position.set(0, 0, -0.2);
+
+            const wheelMat = new THREE.MeshPhysicalMaterial({
+                color: 0x54a0ff,
+                transparent: true,
+                opacity: 0.7,
+                roughness: 0.2,
+                transmission: 0.6,
+                thickness: 0.5
+            });
+
+            // Outer Ring
+            const ringGeo = new THREE.TorusGeometry(1.85, 0.12, 16, 64);
+            wheelRing = new THREE.Mesh(ringGeo, wheelMat);
+            wheelRing.castShadow = true;
+            wheelGroup.add(wheelRing);
+
+            // Back Plate
+            const backPlateGeo = new THREE.CylinderGeometry(1.85, 1.85, 0.05, 32);
+            backPlateGeo.rotateX(Math.PI / 2);
+            const backPlate = new THREE.Mesh(backPlateGeo, wheelMat);
+            backPlate.position.z = -0.4;
+            wheelGroup.add(backPlate);
+
+            // Stand
+            const standMat = new THREE.MeshStandardMaterial({ color: 0xff9f43, metalness: 0.3, roughness: 0.4 });
+            const standGeo = new THREE.CylinderGeometry(0.08, 0.08, 2.2, 16);
+            
+            const standL = new THREE.Mesh(standGeo, standMat);
+            standL.position.set(-0.8, -1.1, -0.4);
+            standL.rotation.z = -0.35;
+
+            const standR = new THREE.Mesh(standGeo, standMat);
+            standR.position.set(0.8, -1.1, -0.4);
+            standR.rotation.z = 0.35;
+
+            wheelGroup.add(standL, standR);
+            scene.add(wheelGroup);
+        }
+
+        function createPlatform() {
+            const floorGeo = new THREE.CylinderGeometry(4.8, 4.8, 0.3, 64);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0xfff0db,
+                roughness: 0.95
+            });
+            floorPlatform = new THREE.Mesh(floorGeo, floorMat);
+            floorPlatform.position.y = -1.65;
+            floorPlatform.receiveShadow = true;
+            scene.add(floorPlatform);
+        }
+
+        // --- FLOATING SEEDS & TREAT BUBBLES ---
+        function createFloatingTreats() {
+            const treatTypes = ['seed', 'heart', 'peanut'];
+
+            for (let i = 0; i < 16; i++) {
+                const group = new THREE.Group();
+                const type = treatTypes[i % treatTypes.length];
+
+                if (type === 'seed') {
+                    const seedGeo = new THREE.ConeGeometry(0.12, 0.35, 8);
+                    const seedMat = new THREE.MeshStandardMaterial({ color: 0x3d3d3d, roughness: 0.5 });
+                    const seed = new THREE.Mesh(seedGeo, seedMat);
+                    group.add(seed);
+                } else if (type === 'heart') {
+                    const heartShape = new THREE.Shape();
+                    heartShape.moveTo(0, 0);
+                    heartShape.bezierCurveTo(0, 0.1, -0.15, 0.25, -0.3, 0.1);
+                    heartShape.bezierCurveTo(-0.4, -0.1, -0.2, -0.3, 0, -0.45);
+                    heartShape.bezierCurveTo(0.2, -0.3, 0.4, -0.1, 0.3, 0.1);
+                    heartShape.bezierCurveTo(0.15, 0.25, 0, 0.1, 0, 0);
+
+                    const extrudeSettings = { depth: 0.08, bevelEnabled: true, bevelSegments: 3, steps: 1, bevelSize: 0.02, bevelThickness: 0.02 };
+                    const heartGeo = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+                    const heartMat = new THREE.MeshStandardMaterial({ color: 0xff6b81, roughness: 0.3 });
+                    const heart = new THREE.Mesh(heartGeo, heartMat);
+                    heart.scale.set(0.5, 0.5, 0.5);
+                    group.add(heart);
+                } else {
+                    const pGeo = new THREE.SphereGeometry(0.15, 16, 16);
+                    pGeo.scale(1, 1.8, 1);
+                    const pMat = new THREE.MeshStandardMaterial({ color: 0xfeca57, roughness: 0.7 });
+                    const peanut = new THREE.Mesh(pGeo, pMat);
+                    group.add(peanut);
+                }
+
+                group.position.set(
+                    (Math.random() - 0.5) * 8,
+                    Math.random() * 3.5 - 0.5,
+                    (Math.random() - 0.5) * 4
+                );
+
+                group.userData = {
+                    initialY: group.position.y,
+                    speed: 0.8 + Math.random() * 1.2,
+                    rotSpeed: (Math.random() - 0.5) * 0.03
+                };
+
+                floatingTreats.push(group);
+                scene.add(group);
+            }
+        }
+
+        // Particle Burst FX
+        function spawnParticleBurst(x, y, z) {
+            for (let i = 0; i < 14; i++) {
+                const pGeo = new THREE.SphereGeometry(0.04 + Math.random() * 0.03, 8, 8);
+                const pMat = new THREE.MeshBasicMaterial({
+                    color: [0xff9f43, 0xfeca57, 0xff6b81, 0x54a0ff][Math.floor(Math.random() * 4)]
+                });
+                const p = new THREE.Mesh(pGeo, pMat);
+                p.position.set(x, y, z);
+                
+                p.userData = {
+                    vx: (Math.random() - 0.5) * 0.09,
+                    vy: Math.random() * 0.09 + 0.02,
+                    vz: (Math.random() - 0.5) * 0.09,
+                    life: 1.0
+                };
+                
+                particles.push(p);
+                scene.add(p);
+            }
+        }
+
+        // Floating Sleep Zzz Text
+        function spawnZzz() {
+            if (activeAction !== 'sleep') return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#a29bfe';
+            ctx.font = 'Bold 48px Fredoka, sans-serif';
+            ctx.fillText('Z', 10, 50);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const zMat = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.9 });
+            const sprite = new THREE.Sprite(zMat);
+            sprite.scale.set(0.35, 0.35, 0.35);
+            sprite.position.set(0.3, 0.6, 0.6);
+
+            sprite.userData = {
+                vy: 0.015,
+                vx: 0.006,
+                life: 1.0
+            };
+
+            zzzParticles.push(sprite);
+            scene.add(sprite);
+        }
+
+        // Mouse Tracker
+        function onMouseMove(e) {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        }
+
+        // --- ANIMATION INTERACTION CONTROLS ---
+        function triggerAction(action) {
+            activeAction = action;
+            actionTimer = 0;
+
+            if (action === 'bounce') {
+                playSound('pop');
+            } else if (action === 'run') {
+                playSound('squeak');
+            } else if (action === 'eat') {
+                playSound('crunch');
+                spawnParticleBurst(0, 0.4, 0.8);
+            } else if (action === 'sniff') {
+                playSound('squeak');
+            } else if (action === 'sleep') {
+                playSound('squeak');
+            }
+        }
+
+        function triggerPetAction() {
+            petCount++;
+            document.getElementById('pet-count-display').innerText = petCount;
+            triggerAction('bounce');
+            confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
+        }
+
+        function changeFurColor(hex) {
+            currentFurColor = hex;
+            if (bodyMesh) bodyMesh.material.color.setHex(hex);
+            playSound('pop');
+        }
+
+        function setEnvironment(env) {
+            if (env === 'cozy') {
+                scene.fog.color.setHex(0xfff9f0);
+                floorPlatform.material.color.setHex(0xfff0db);
+                roomLight.color.setHex(0xfffaed);
+            } else if (env === 'cyber') {
+                scene.fog.color.setHex(0x1a0933);
+                floorPlatform.material.color.setHex(0x2d124d);
+                roomLight.color.setHex(0xff00ff);
+            } else if (env === 'meadow') {
+                scene.fog.color.setHex(0xe8f5e9);
+                floorPlatform.material.color.setHex(0x81c784);
+                roomLight.color.setHex(0xfff59d);
+            }
+            playSound('pop');
+        }
+
+        function setCameraAngle(angle) {
+            if (angle === 'closeup') {
+                camera.position.set(0, 0.6, 2.8);
+            } else if (angle === 'wheel') {
+                camera.position.set(2.5, 1.2, 4.5);
+            } else {
+                camera.position.set(0, 1.8, 6.5);
+            }
+            playSound('pop');
+        }
+
+        function feedTreatToGame() {
+            treatCount++;
+            if (treatCount > 10) treatCount = 10;
+
+            cheekScaleTarget = 1.0 + (treatCount * 0.08);
+
+            const percentage = (treatCount / 10) * 100;
+            document.getElementById('treat-bar').style.width = `${percentage}%`;
+            document.getElementById('treat-counter').innerText = `${treatCount} / 10 Seeds`;
+
+            triggerAction('eat');
+
+            if (treatCount === 10) {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+                playSound('squeak');
+            }
+        }
+
+        function emptyCheeks() {
+            treatCount = 0;
+            cheekScaleTarget = 1.0;
+            document.getElementById('treat-bar').style.width = '0%';
+            document.getElementById('treat-counter').innerText = '0 / 10 Seeds';
+            playSound('pop');
+        }
+
+        // --- GALLERY LIGHTBOX & ACCORDION HELPERS ---
+        function filterGallery(category) {
+            const items = document.querySelectorAll('.gallery-item');
+            const tabs = document.querySelectorAll('.gallery-tab');
+
+            tabs.forEach(tab => {
+                tab.classList.remove('bg-orange-500', 'text-white');
+                tab.classList.add('glass-panel', 'text-slate-700');
+            });
+            event.target.classList.remove('glass-panel', 'text-slate-700');
+            event.target.classList.add('bg-orange-500', 'text-white');
+
+            items.forEach(item => {
+                if (category === 'all' || item.classList.contains(category)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function openLightbox(url, title, badge) {
+            document.getElementById('lightbox-img').src = url;
+            document.getElementById('lightbox-title').innerText = title;
+            document.getElementById('lightbox-badge').innerText = badge;
+            document.getElementById('lightbox-modal').classList.remove('hidden');
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox-modal').classList.add('hidden');
+        }
+
+        function downloadPhotoNotice() {
+            alert('❤️ Added photo to your favorite hamster gallery list!');
+        }
+
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const icon = document.getElementById(id + '-icon');
+
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        // --- RENDER & ANIMATION LOOP ---
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const elapsedTime = clock.getElapsedTime();
+            actionTimer += 0.02;
+
+            // Smooth Cheek Expansion Scale Interpolation
+            cheekScaleCurrent += (cheekScaleTarget - cheekScaleCurrent) * 0.1;
+            leftCheek.scale.set(cheekScaleCurrent, cheekScaleCurrent, cheekScaleCurrent);
+            rightCheek.scale.set(cheekScaleCurrent, cheekScaleCurrent, cheekScaleCurrent);
+
+            // 1. Idle Whiskers, Tail, & Ear Twitching
+            if (whiskerGroup) {
+                whiskerGroup.rotation.z = Math.sin(elapsedTime * 12) * 0.05;
+            }
+            if (tailMesh) {
+                tailMesh.rotation.y = Math.sin(elapsedTime * 10) * 0.2;
+            }
+            if (earLeft && earRight) {
+                earLeft.rotation.x = Math.sin(elapsedTime * 8) * 0.08;
+                earRight.rotation.x = Math.cos(elapsedTime * 8) * 0.08;
+            }
+
+            // Blinking Routine
+            if (Math.floor(elapsedTime * 2) % 7 === 0 && Math.sin(elapsedTime * 20) > 0.8) {
+                eyeL.scale.y = 0.1;
+                eyeR.scale.y = 0.1;
+            } else {
+                eyeL.scale.y = 1.0;
+                eyeR.scale.y = 1.0;
+            }
+
+            // 2. Handle Hamster Action States
+            if (activeAction === 'idle') {
+                hamsterGroup.position.y = 0.3 + Math.sin(elapsedTime * 3) * 0.04;
+                hamsterGroup.scale.set(1, 1, 1);
+                wheelSpeed *= 0.95;
+            } 
+            else if (activeAction === 'bounce') {
+                const bounceY = Math.abs(Math.sin(actionTimer * 6)) * 0.8;
+                hamsterGroup.position.y = 0.3 + bounceY;
+
+                if (bounceY < 0.1) {
+                    hamsterGroup.scale.set(1.2, 0.8, 1.2);
+                } else {
+                    hamsterGroup.scale.set(0.9, 1.15, 0.9);
+                }
+
+                if (actionTimer > Math.PI * 2) {
+                    activeAction = 'idle';
+                }
+            } 
+            else if (activeAction === 'run') {
+                wheelSpeed = 0.12;
+                hamsterGroup.position.set(0, 0.25, 0);
+                hamsterGroup.rotation.x = 0.2;
+                hamsterGroup.position.y = 0.25 + Math.sin(elapsedTime * 25) * 0.05;
+
+                if (actionTimer > 4) {
+                    hamsterGroup.rotation.x = 0;
+                    activeAction = 'idle';
+                }
+            } 
+            else if (activeAction === 'eat') {
+                const munch = Math.sin(elapsedTime * 22) * 0.15 + cheekScaleCurrent;
+                leftCheek.scale.set(munch, munch, munch);
+                rightCheek.scale.set(munch, munch, munch);
+
+                headGroup.rotation.x = Math.sin(elapsedTime * 16) * 0.12;
+
+                if (actionTimer > 2.5) {
+                    headGroup.rotation.x = 0;
+                    activeAction = 'idle';
+                }
+            }
+            else if (activeAction === 'sniff') {
+                // Reach toward mouse target
+                headGroup.rotation.y += (mouse.x * 0.6 - headGroup.rotation.y) * 0.1;
+                headGroup.rotation.x += (-mouse.y * 0.4 - headGroup.rotation.x) * 0.1;
+
+                if (actionTimer > 3.5) {
+                    headGroup.rotation.set(0,0,0);
+                    activeAction = 'idle';
+                }
+            }
+            else if (activeAction === 'sleep') {
+                hamsterGroup.scale.set(1.1, 0.7, 1.1);
+                hamsterGroup.position.y = 0.1;
+
+                if (Math.random() < 0.03) {
+                    spawnZzz();
+                }
+
+                if (actionTimer > 5) {
+                    activeAction = 'idle';
+                }
+            }
+
+            // Spin Wheel
+            if (wheelRing) {
+                wheelRing.rotation.z += wheelSpeed;
+            }
+
+            // Animate Floating Treat Bubbles
+            floatingTreats.forEach(treat => {
+                treat.position.y = treat.userData.initialY + Math.sin(elapsedTime * treat.userData.speed) * 0.25;
+                treat.rotation.y += treat.userData.rotSpeed;
+            });
+
+            // Animate Particle Bursts
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.position.x += p.userData.vx;
+                p.position.y += p.userData.vy;
+                p.position.z += p.userData.vz;
+                p.userData.life -= 0.02;
+                p.scale.multiplyScalar(0.95);
+
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Animate Sleep Zzz Sprites
+            for (let i = zzzParticles.length - 1; i >= 0; i--) {
+                const z = zzzParticles[i];
+                z.position.y += z.userData.vy;
+                z.position.x += z.userData.vx;
+                z.userData.life -= 0.015;
+                z.material.opacity = z.userData.life;
+
+                if (z.userData.life <= 0) {
+                    scene.remove(z);
+                    zzzParticles.splice(i, 1);
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Start 3D Engine on load
+        window.onload = function() {
+            init3D();
+        };
+    </script>
+</body>
+</html>
