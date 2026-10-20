@@ -1,2 +1,0 @@
-# hamstermoonlight
-for hamster lover
